@@ -3,14 +3,15 @@
  * Publish a static folder through AttachPage and optionally send it.
  *
  *   node publish.mjs <folder> --name "Q3 report" [--slug q3-report] [--site <siteId>]
- *                    [--to a@b.com,c@d.com] [--message "…"] [--expires 7] [--origin https://app.example.com]
+ *                    [--to a@b.com,c@d.com] [--message "…"] [--expires 7] [--origin https://attachpage.com]
  *
- * Credentials: ATTACHPAGE_API_KEY (+ ATTACHPAGE_ORIGIN) in the environment or ~/.attachpage/credentials.
+ * Credentials: ATTACHPAGE_API_KEY (+ optional ATTACHPAGE_ORIGIN, default https://attachpage.com) in the
+ * environment or ~/.attachpage/credentials.
  * Exit code 0 on success; the page URL is printed on its own line.
  */
 import { readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, relative, resolve, sep } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 
 const args = process.argv.slice(2);
 const folder = args.find((a) => !a.startsWith("--"));
@@ -27,7 +28,7 @@ if (!folder) {
 
 async function credentials() {
   const env = { key: process.env.ATTACHPAGE_API_KEY, origin: process.env.ATTACHPAGE_ORIGIN };
-  if (env.key && env.origin) return env;
+  if (env.key && env.origin) return { ...env, origin: opt("origin", env.origin) };
   try {
     const text = await readFile(join(homedir(), ".attachpage", "credentials"), "utf8");
     for (const line of text.split("\n")) {
@@ -38,11 +39,9 @@ async function credentials() {
   } catch {
     /* no credentials file */
   }
-  env.origin = opt("origin", env.origin);
-  if (!env.key || !env.origin) {
-    console.error(
-      "Missing credentials: set ATTACHPAGE_API_KEY and ATTACHPAGE_ORIGIN (or ~/.attachpage/credentials).",
-    );
+  env.origin = opt("origin", env.origin ?? "https://attachpage.com");
+  if (!env.key) {
+    console.error("Missing credentials: set ATTACHPAGE_API_KEY (or ~/.attachpage/credentials).");
     process.exit(2);
   }
   return env;
@@ -79,7 +78,7 @@ async function api(origin, key, path, init = {}) {
   if (!res.ok) {
     const findings = body?.error?.details?.findings;
     if (findings)
-      for (const f of findings) console.error(`${f.level}: ${f.message}${f.hint ? ` — ${f.hint}` : ""}`);
+      for (const f of findings) console.error(`${f.level}: ${f.message}${f.hint ? `: ${f.hint}` : ""}`);
     throw new Error(body?.error?.message ?? `${res.status} ${res.statusText}`);
   }
   return body;
@@ -87,45 +86,66 @@ async function api(origin, key, path, init = {}) {
 
 const { key, origin } = await credentials();
 const root = resolve(folder);
-const files = await walk(root);
-if (!files.some((f) => f.path === "index.html")) {
-  console.error("The folder needs an index.html at its top level.");
-  process.exit(1);
+let published;
+if ((await stat(root)).isFile()) {
+  // Multipart keeps documents out of JSON/base64 size limits and preserves the original filename.
+  const form = new FormData();
+  form.set("file", new Blob([await readFile(root)]), basename(root));
+  for (const [flag, field] of [
+    ["name", "siteName"],
+    ["slug", "slug"],
+    ["site", "siteId"],
+  ]) {
+    const value = opt(flag, undefined);
+    if (value) form.set(field, value);
+  }
+  published = await api(origin, key, "/api/v1/documents/publish", { method: "POST", body: form });
+} else {
+  const files = await walk(root);
+  if (!files.some((f) => f.path === "index.html")) {
+    console.error("The folder needs an index.html at its top level.");
+    process.exit(1);
+  }
+
+  const created = await api(origin, key, "/api/v1/publish", {
+    method: "POST",
+    body: JSON.stringify({
+      siteName: opt("name", undefined),
+      slug: opt("slug", undefined),
+      siteId: opt("site", undefined),
+      files: files.map((f) => ({ path: f.path, size: f.size })),
+    }),
+  });
+  for (const f of created.findings ?? []) if (f.level !== "error") console.error(`${f.level}: ${f.message}`);
+
+  const byPath = new Map(files.map((f) => [f.path, f.full]));
+  let done = 0;
+  const queue = [...created.targets];
+  await Promise.all(
+    Array.from({ length: 6 }, async () => {
+      for (let t = queue.shift(); t; t = queue.shift()) {
+        const target = new URL(t.url);
+        const uploadHeaders = new Headers(t.headers);
+        // Direct storage URLs carry their own short-lived signature, never our account key.
+        if (target.origin === new URL(origin).origin) uploadHeaders.set("Authorization", `Bearer ${key}`);
+        else uploadHeaders.delete("Authorization");
+        const res = await fetch(t.url, {
+          method: t.method,
+          headers: uploadHeaders,
+          body: await readFile(byPath.get(t.path)),
+        });
+        if (!res.ok) throw new Error(`upload failed for ${t.path}: ${res.status}`);
+        done++;
+        process.stderr.write(`\ruploaded ${done}/${created.targets.length}`);
+      }
+    }),
+  );
+  process.stderr.write("\n");
+
+  published = await api(origin, key, `/api/v1/publish/${created.uploadSessionId}/finalize`, {
+    method: "POST",
+  });
 }
-
-const created = await api(origin, key, "/api/v1/publish", {
-  method: "POST",
-  body: JSON.stringify({
-    siteName: opt("name", undefined),
-    slug: opt("slug", undefined),
-    siteId: opt("site", undefined),
-    files: files.map((f) => ({ path: f.path, size: f.size })),
-  }),
-});
-for (const f of created.findings ?? []) if (f.level !== "error") console.error(`${f.level}: ${f.message}`);
-
-const byPath = new Map(files.map((f) => [f.path, f.full]));
-let done = 0;
-const queue = [...created.targets];
-await Promise.all(
-  Array.from({ length: 6 }, async () => {
-    for (let t = queue.shift(); t; t = queue.shift()) {
-      const res = await fetch(t.url, {
-        method: t.method,
-        headers: { Authorization: `Bearer ${key}`, ...t.headers },
-        body: await readFile(byPath.get(t.path)),
-      });
-      if (!res.ok) throw new Error(`upload failed for ${t.path}: ${res.status}`);
-      done++;
-      process.stderr.write(`\ruploaded ${done}/${created.targets.length}`);
-    }
-  }),
-);
-process.stderr.write("\n");
-
-const published = await api(origin, key, `/api/v1/publish/${created.uploadSessionId}/finalize`, {
-  method: "POST",
-});
 console.log(published.url);
 
 const to = opt("to", "");

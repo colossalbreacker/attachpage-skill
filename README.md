@@ -1,8 +1,6 @@
 # AttachPage agent skill
 
-Send a web page like an attachment — or publish it right from your chat.
-
-Works with **any agent or tool that can make an HTTP request**: Claude Code, Cursor, Codex, OpenClaw, Amp, Gemini CLI, Aider, ChatGPT (as a Custom GPT Action), scripts, CI.
+Publish pages and documents, send private invitations, and apply recipient feedback.
 
 ## Install
 
@@ -10,15 +8,30 @@ Works with **any agent or tool that can make an HTTP request**: Claude Code, Cur
 npx skills add colossalbreacker/attachpage-skill --skill attachpage -g
 ```
 
-or just tell your agent: *"Read https://preview.attachpage.com/skill.md and follow it."*
+Use the existing AttachPage MCP connection when your agent has one. Connect your own account at
+[attachpage.com/agents](https://attachpage.com/agents). ChatGPT and Claude use OAuth; coding agents
+can use remote MCP or device sign-in. AttachPage currently requires a private-beta invitation.
 
-## What's here
+Browsing the documentation alone does not give an agent permission to publish. The installed
+skill explains the available connections and HTTP fallback without asking for credentials in chat.
 
-- `SKILL.md` — the instructions agents follow (offline copy of `/skill.md`).
-- `scripts/publish.mjs` — declare → upload → finalize → send in one command for larger folders.
+## Included files
 
-## Other ways in
+- `SKILL.md`: connection, publishing, sharing, and feedback instructions.
+- `scripts/publish.mjs`: upload a static folder or PDF, Word, PowerPoint, Excel, or CSV document.
+  It finalizes before sending and sends invitations only when confirmed recipients are supplied.
+  Direct storage uploads do not receive the AttachPage API key.
 
-- OpenAPI for ChatGPT Actions: `https://preview.attachpage.com/openapi.json`
-- MCP server (Streamable HTTP): `https://preview.attachpage.com/mcp`
-- No account? Anonymous 48-hour public pages with a claim link — see `SKILL.md`.
+The helper is covered by four tests in the
+[application repository](https://github.com/colossalbreacker/attachpage/tree/main/skill/tests).
+They verify exact folder uploads, stopping on failed finalization, multipart document publishing,
+and withholding account credentials from direct storage uploads.
+
+## Other connections
+
+- Remote MCP: `https://attachpage.com/mcp`
+- Custom GPT Actions: `https://attachpage.com/openapi.json`
+- Documentation: [attachpage.com/docs](https://attachpage.com/docs)
+
+Pages and documents are private by default. New invitations require the exact recipient addresses
+and message. Anonymous publishing is unavailable during private beta.
