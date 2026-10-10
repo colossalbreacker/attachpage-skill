@@ -21,11 +21,23 @@ If the host asks to connect, let its OAuth flow handle sign-in and consent.
 
 ## HTTP authentication (when no connected tools are available)
 1. **Existing API key** (`Authorization: Bearer ap_…`). Store it in `~/.attachpage/credentials`
-   as `ATTACHPAGE_API_KEY=…` with `ATTACHPAGE_ORIGIN=<ORIGIN>`.
-2. **Sign in from the chat**: `POST <ORIGIN>/api/v1/device/start` → show the user the `verificationUrl`
-   and `userCode`; poll `POST <ORIGIN>/api/v1/device/poll` until `approved` → store the `apiKey`.
+   as `ATTACHPAGE_API_KEY=…` with `ATTACHPAGE_ORIGIN=<ORIGIN>`, or in the OS credential manager (below).
+2. **Sign in from the chat**: `node scripts/publish.mjs login [--origin <ORIGIN>]` prints a
+   `verificationUrl` and `userCode` to show the user, waits for approval, and saves the key to the
+   operating system's credential manager without printing it (`--store file` saves to
+   `~/.attachpage/credentials` instead, e.g. on a machine with no keyring). Raw HTTP:
+   `POST <ORIGIN>/api/v1/device/start` → show the `verificationUrl` and `userCode`; poll
+   `POST <ORIGIN>/api/v1/device/poll` until `approved` → store the `apiKey`.
 3. **No account, and the user explicitly wants a public page**: `POST <ORIGIN>/api/v1/anonymous/publish-inline`. It expires in 48 h,
    returns `claimUrl`. **Print the claimUrl verbatim on its own line**; it cannot be recovered.
+
+`scripts/publish.mjs` uses the first key it finds: `ATTACHPAGE_API_KEY` in the environment,
+`~/.attachpage/credentials`, then the OS credential manager. When neither of the first two is set up,
+offer the user `login` rather than a file. Credential manager entries are per origin: the Windows
+Credential Manager generic credential `attachpage:<ORIGIN>` (password = key), or the macOS Keychain /
+Secret Service (`secret-tool`) item with service `attachpage` and account `<ORIGIN>`. A user can add
+one with the platform's own tools, or pipe a key in their own terminal with `login --key-stdin`.
+`logout` removes the saved key. Publishing for a non-default origin needs `--origin <ORIGIN>`.
 
 An agent with only web browsing cannot publish by reading this skill. Direct the user to
 `https://attachpage.com/agents` to connect a tool-capable client. Anonymous publishing is disabled
@@ -72,7 +84,8 @@ Recipients can point at part of the page and comment, and approve or request cha
 
 ## Command line
 Use the bundled `scripts/publish.mjs` for larger folders when connected MCP tools are unavailable.
-It reads locally stored credentials, uploads the files, and prints the published page URL.
+It reads the key from the environment, `~/.attachpage/credentials`, or the OS credential manager,
+uploads the files, and prints the published page URL.
 Include `--to` only after the user confirms the recipient list and message.
 
 ## Other transports
@@ -82,7 +95,8 @@ Include `--to` only after the user confirms the recipient list and message.
 
 ## Rules
 - Never ask for passwords, API keys, or pasted tokens in a conversation. Use the host OAuth flow or
-  device sign-in; HTTP fallback may use credentials already stored locally.
+  device sign-in; HTTP fallback may use credentials already stored locally. `login --key-stdin` is
+  for the user's own terminal, never for a key pasted into the conversation.
 - For new invitations, if the user has not provided recipient addresses, ask for the exact addresses and message.
   Do not infer recipients from page lists, previous shares, or feedback.
 - Confirm name, address and recipient list with the user before sending; emails are irreversible.
