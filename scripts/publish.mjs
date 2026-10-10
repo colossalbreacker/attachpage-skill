@@ -76,7 +76,7 @@ async function credentials() {
       `Missing credentials: set ATTACHPAGE_API_KEY, add it to ~/.attachpage/credentials, or run ` +
         `"publish.mjs login" to sign in and save a key to ${credentialManager.name}.`,
     );
-    if (unavailable) console.error(`${credentialManager.name} is unavailable: ${unavailable}`);
+    if (unavailable) console.error(`${capitalize(credentialManager.name)} is unavailable: ${unavailable}`);
     process.exit(2);
   }
   return env;
@@ -275,6 +275,7 @@ const credentialManagers = {
   },
 };
 const credentialManager = credentialManagers[process.platform] ?? credentialManagers.secretService;
+const capitalize = (text) => text[0].toUpperCase() + text.slice(1);
 
 async function saveToFile(origin, key) {
   let lines = [];
@@ -342,7 +343,7 @@ async function login() {
       await credentialManager.get(origin);
     } catch (error) {
       throw new Error(
-        `${credentialManager.name} is unavailable: ${error.message}\n` +
+        `${capitalize(credentialManager.name)} is unavailable: ${error.message}\n` +
           `Run "publish.mjs login --store file" to save the key to ${CREDENTIALS_FILE} instead.`,
       );
     }
