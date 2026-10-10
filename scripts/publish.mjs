@@ -13,6 +13,7 @@
  * Secret Service via secret-tool).
  * `login` signs in through the browser and saves the key to the credential manager, or to the file with
  * `--store file`; `--key-stdin` saves a key piped on standard input instead of signing in.
+ * (To publish a folder literally named login or logout, pass it as ./login.)
  * Exit code 0 on success; the page URL is printed on its own line.
  */
 import { execFile } from "node:child_process";

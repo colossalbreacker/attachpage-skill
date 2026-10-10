@@ -23,8 +23,9 @@ If the host asks to connect, let its OAuth flow handle sign-in and consent.
 1. **Existing API key** (`Authorization: Bearer ap_…`). Store it in `~/.attachpage/credentials`
    as `ATTACHPAGE_API_KEY=…` with `ATTACHPAGE_ORIGIN=<ORIGIN>`, or in the OS credential manager (below).
 2. **Sign in from the chat**: `node scripts/publish.mjs login [--origin <ORIGIN>]` prints a
-   `verificationUrl` and `userCode` to show the user, waits for approval, and saves the key to the
-   operating system's credential manager without printing it (`--store file` saves to
+   `verificationUrl` and `userCode` to show the user, waits for approval (up to 15 minutes, so run it
+   in the background or with a long timeout and relay the link and code as soon as they appear), and
+   saves the key to the operating system's credential manager without printing it (`--store file` saves to
    `~/.attachpage/credentials` instead, e.g. on a machine with no keyring). Raw HTTP:
    `POST <ORIGIN>/api/v1/device/start` → show the `verificationUrl` and `userCode`; poll
    `POST <ORIGIN>/api/v1/device/poll` until `approved` → store the `apiKey`.
