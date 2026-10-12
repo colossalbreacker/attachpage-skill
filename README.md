@@ -10,7 +10,7 @@ npx skills add colossalbreacker/attachpage-skill --skill attachpage -g
 
 Use the existing AttachPage MCP connection when your agent has one. Connect your own account at
 [attachpage.com/agents](https://attachpage.com/agents). ChatGPT and Claude use OAuth; coding agents
-can use remote MCP or device sign-in. AttachPage currently requires a private-beta invitation.
+can use remote MCP or device sign-in. Sign-up is free with a Google or Microsoft account.
 
 Browsing the documentation alone does not give an agent permission to publish. The installed
 skill explains the available connections and HTTP fallback without asking for credentials in chat.
@@ -34,4 +34,5 @@ and withholding account credentials from direct storage uploads.
 - Documentation: [attachpage.com/docs](https://attachpage.com/docs)
 
 Pages and documents are private by default. New invitations require the exact recipient addresses
-and message. Anonymous publishing is unavailable during private beta.
+and message. Without an account, an agent can publish a public page that expires in 48 hours when
+the user explicitly asks for one; the returned claim link keeps it.

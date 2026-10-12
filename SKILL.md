@@ -28,8 +28,8 @@ If the host asks to connect, let its OAuth flow handle sign-in and consent.
    returns `claimUrl`. **Print the claimUrl verbatim on its own line**; it cannot be recovered.
 
 An agent with only web browsing cannot publish by reading this skill. Direct the user to
-`https://attachpage.com/agents` to connect a tool-capable client. Anonymous publishing is disabled
-while AttachPage is in private beta; invited users can connect through OAuth or device sign-in.
+`https://attachpage.com/agents` to connect a tool-capable client. Anyone can sign up free with a
+Google or Microsoft account through OAuth or device sign-in.
 
 ## Publish
 For PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx/.xls), and CSV files, use `publish_document`
