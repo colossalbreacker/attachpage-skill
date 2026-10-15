@@ -1,0 +1,38 @@
+{
+  "name": "attachpage",
+  "version": "0.1.2",
+  "description": "Send websites like attachments: publish a folder, email personal links, read feedback. Command line for AttachPage.",
+  "keywords": [
+    "publish",
+    "static-site",
+    "share",
+    "html",
+    "agents",
+    "mcp",
+    "attachpage"
+  ],
+  "homepage": "https://attachpage.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/colossalbreacker/attachpage-skill.git",
+    "directory": "cli"
+  },
+  "bugs": {
+    "email": "support@attachpage.com"
+  },
+  "license": "MIT",
+  "author": "JP Technology Services LLC (https://jptechnologyservices.com)",
+  "type": "module",
+  "bin": {
+    "attachpage": "bin/attachpage.mjs"
+  },
+  "files": [
+    "bin/attachpage.mjs"
+  ],
+  "scripts": {
+    "test": "node --test test/credentials.test.mjs test/connect.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

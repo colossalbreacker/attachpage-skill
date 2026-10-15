@@ -27,6 +27,13 @@ The helper is covered by four tests in the
 They verify exact folder uploads, stopping on failed finalization, multipart document publishing,
 and withholding account credentials from direct storage uploads.
 
+## Command line
+
+`cli/` is the [`attachpage`](https://www.npmjs.com/package/attachpage) npm package
+(`npx attachpage ./dist`). It has no dependencies and its tests run with `npm test` in `cli/`.
+Releases are published from GitHub Actions with npm trusted publishing (no stored npm token, with
+provenance): bump `cli/package.json` and push a matching `cli-vX.Y.Z` tag.
+
 ## Other connections
 
 - Remote MCP: `https://attachpage.com/mcp`

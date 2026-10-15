@@ -1,0 +1,29 @@
+# Publishes the `attachpage` npm package when a tag like cli-v0.1.2 is pushed.
+# npm Trusted Publishing (OIDC): no npm token is stored anywhere; npm trusts this workflow file
+# in this repository, and adds a provenance statement linking each version to its source.
+name: Publish CLI to npm
+
+on:
+  push:
+    tags: ["cli-v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json version
+        run: test "cli-v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm test
+      - run: npm publish --access public
