@@ -19,10 +19,10 @@ jobs:
         working-directory: cli
     steps:
       - uses: actions/checkout@v4
+      # No registry-url: setup-node would write a placeholder token that blocks trusted publishing.
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
       - name: Tag matches package.json version
         run: test "cli-v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm test
